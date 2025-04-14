@@ -11,58 +11,53 @@ jobs:
     timeout-minutes: 10
 
     steps:
-    # 1. Checkout code
-    - uses: actions/checkout@v4
+      # 1. Checkout code
+      - uses: actions/checkout@v4
 
-    # 2. Set up Python
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      # 2. Set up Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    # 3. Install dependencies
-    - name: Install packages
-      run: |
-        pip install ccxt pandas numpy python-dotenv pybit
+      # 3. Install dependencies
+      - name: Install packages
+        run: |
+          pip install ccxt pandas numpy python-dotenv pybit
 
-    # 4. Download previous state (critical fix)
-    - name: Download previous trade state
-      uses: actions/download-artifact@v3
-      with:
-        name: trading-state
-        path: ${{ github.workspace }}
-        pattern: '*.json,*.txt'  # Explicit file patterns
-        if-no-files-found: ignore  # Prevents failure on first run
-        merge-multiple: true  # Combines artifacts if multiple exist
+      # 4. Download previous state
+      - name: Download previous trade state
+        uses: actions/download-artifact@v4
+        with:
+          name: trading-state
+          path: ${{ github.workspace }}
+        continue-on-error: true
 
-    # 5. Initialize files (if missing)
-    - name: Create default files
-      run: |
-        if [ ! -f "$GITHUB_WORKSPACE/active_trade.json" ]; then
-          echo "{}" > "$GITHUB_WORKSPACE/active_trade.json"
-        fi
-        if [ ! -f "$GITHUB_WORKSPACE/trade_state.txt" ]; then
-          echo "ENTRY" > "$GITHUB_WORKSPACE/trade_state.txt"
-        fi
+      # 5. Initialize files (if missing)
+      - name: Create default files
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/active_trade.json" ]; then
+            echo "{}" > "$GITHUB_WORKSPACE/active_trade.json"
+          fi
+          if [ ! -f "$GITHUB_WORKSPACE/trade_state.txt" ]; then
+            echo "ENTRY" > "$GITHUB_WORKSPACE/trade_state.txt"
+          fi
 
-    # 6. Run bot
-    - name: Execute trading bot
-      env:
-        GITHUB_WORKSPACE: ${{ github.workspace }}
-        EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
-        EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
-        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-        BYBIT_API_KEY: ${{ secrets.BYBIT_API_KEY }}
-        BYBIT_API_SECRET: ${{ secrets.BYBIT_API_SECRET }}
-      run: python newfile.py
+      # 6. Run bot
+      - name: Execute trading bot
+        env:
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          BYBIT_API_KEY: ${{ secrets.BYBIT_API_KEY }}
+          BYBIT_API_SECRET: ${{ secrets.BYBIT_API_SECRET }}
+        run: python newfile.py
 
-    # 7. Upload new state (even if job fails)
-    - name: Upload trade state
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: trading-state
-        path: |
-          ${{ github.workspace }}/active_trade.json
-          ${{ github.workspace }}/trade_state.txt
-        retention-days: 1
-        overwrite: true  # Replaces previous artifacts
+      # 7. Upload new state
+      - name: Upload trade state
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trading-state
+          path: |
+            ${{ github.workspace }}/active_trade.json
+            ${{ github.workspace }}/trade_state.txt
